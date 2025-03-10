@@ -3,108 +3,163 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>To-Do List</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>To-Do List with Deadlines & Images</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 0; }
+    .container { width: 450px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    h1 { text-align: center; }
+    .input-group { display: flex; margin-bottom: 10px; gap: 10px; }
+    .input-group input, .input-group button { padding: 10px; }
+    #taskInput, #deadlineInput { flex: 1; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; flex-direction: column; margin-bottom: 10px; background: #eee; padding: 10px; border-radius: 4px; }
+    .task-header { display: flex; justify-content: space-between; align-items: center; }
+    .completed span { text-decoration: line-through; color: gray; }
+    .task-buttons button { margin-left: 5px; padding: 5px 10px; }
+    img.task-image { width: 100%; max-height: 200px; object-fit: contain; margin-top: 10px; border-radius: 4px; }
+    .delete-all { background: #e74c3c; color: #fff; width: 100%; padding: 10px; margin-top: 10px; border-radius: 4px; border: none; cursor: pointer; }
+  </style>
 </head>
 <body>
   <div class="container">
-    <h1>To-Do List</h1>
-    <div class="input-section">
-      <input type="text" id="taskInput" placeholder="Add a new task..." />
-      <button id="addTaskBtn">Add</button>
+    <h1>📝 To-Do List</h1>
+    <div class="input-group">
+      <input type="text" id="taskInput" placeholder="Task description..." />
+    </div>
+    <div class="input-group">
+      <input type="date" id="deadlineInput" />
+    </div>
+    <div class="input-group">
+      <input type="file" id="imageInput" accept="image/*" />
+      <button onclick="addTask()">Add Task</button>
     </div>
     <ul id="taskList"></ul>
-    <button id="deleteAllBtn">Delete All Tasks</button>
+    <button class="delete-all" onclick="deleteAllTasks()">Delete All Tasks</button>
   </div>
 
   <script>
     let tasks = [];
     let deleteAllConfirm = false;
 
-    document.getElementById("addTaskBtn").addEventListener("click", addTask);
-    document.getElementById("deleteAllBtn").addEventListener("click", deleteAllTasks);
-
     function addTask() {
-      const taskInput = document.getElementById("taskInput");
-      const taskText = taskInput.value.trim();
+      const taskInput = document.getElementById('taskInput');
+      const deadlineInput = document.getElementById('deadlineInput');
+      const imageInput = document.getElementById('imageInput');
 
-      if (taskText === "") {
-        alert("Please enter a task!");
+      const text = taskInput.value.trim();
+      const deadline = deadlineInput.value;
+
+      if (!text) {
+        alert('Please enter a task description!');
         return;
       }
 
-      const task = {
-        id: Date.now(),
-        text: taskText,
-        completed: false
+      const reader = new FileReader();
+      const file = imageInput.files[0];
+
+      reader.onloadend = function() {
+        const imageUrl = file ? reader.result : null;
+
+        const task = {
+          id: Date.now(),
+          text: text,
+          deadline: deadline,
+          image: imageUrl,
+          completed: false
+        };
+
+        tasks.push(task);
+        taskInput.value = '';
+        deadlineInput.value = '';
+        imageInput.value = '';
+        deleteAllConfirm = false;
+        renderTasks();
       };
 
-      tasks.push(task);
-      taskInput.value = "";
-      deleteAllConfirm = false;
-      renderTasks();
+      if (file) {
+        reader.readAsDataURL(file);
+      } else {
+        reader.onloadend();
+      }
     }
 
     function renderTasks() {
-      const taskList = document.getElementById("taskList");
-      taskList.innerHTML = "";
+      const list = document.getElementById('taskList');
+      list.innerHTML = '';
 
-      tasks.forEach((task) => {
-        const li = document.createElement("li");
-        li.className = "task-item" + (task.completed ? " completed" : "");
+      tasks.forEach(task => {
+        const li = document.createElement('li');
+        li.className = task.completed ? 'completed' : '';
 
-        const taskSpan = document.createElement("span");
-        taskSpan.textContent = task.text;
+        const header = document.createElement('div');
+        header.className = 'task-header';
 
-        const actionsDiv = document.createElement("div");
-        actionsDiv.className = "task-actions";
+        const taskInfo = document.createElement('div');
+        const textSpan = document.createElement('span');
+        textSpan.textContent = task.text;
 
-        const completeBtn = document.createElement("button");
-        completeBtn.textContent = task.completed ? "Undo" : "Complete";
-        completeBtn.onclick = () => toggleComplete(task.id);
+        const deadlineSpan = document.createElement('small');
+        deadlineSpan.textContent = task.deadline ? `Deadline: ${task.deadline}` : '';
 
-        const editBtn = document.createElement("button");
-        editBtn.textContent = "Edit";
+        taskInfo.appendChild(textSpan);
+        if (task.deadline) taskInfo.appendChild(document.createElement('br'));
+        taskInfo.appendChild(deadlineSpan);
+
+        const buttons = document.createElement('div');
+        buttons.className = 'task-buttons';
+
+        const toggleBtn = document.createElement('button');
+        toggleBtn.textContent = task.completed ? 'Undo' : 'Done';
+        toggleBtn.onclick = () => toggleComplete(task.id);
+
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
         editBtn.onclick = () => editTask(task.id);
 
-        const deleteBtn = document.createElement("button");
-        deleteBtn.textContent = "Delete";
-        deleteBtn.className = "delete-btn";
+        const deleteBtn = document.createElement('button');
+        deleteBtn.textContent = 'Delete';
         deleteBtn.onclick = () => deleteTask(task.id);
 
-        actionsDiv.appendChild(completeBtn);
-        actionsDiv.appendChild(editBtn);
-        actionsDiv.appendChild(deleteBtn);
+        buttons.appendChild(toggleBtn);
+        buttons.appendChild(editBtn);
+        buttons.appendChild(deleteBtn);
 
-        li.appendChild(taskSpan);
-        li.appendChild(actionsDiv);
+        header.appendChild(taskInfo);
+        header.appendChild(buttons);
+        li.appendChild(header);
 
-        taskList.appendChild(li);
+        if (task.image) {
+          const img = document.createElement('img');
+          img.src = task.image;
+          img.className = 'task-image';
+          li.appendChild(img);
+        }
+
+        list.appendChild(li);
       });
     }
 
-    function toggleComplete(taskId) {
-      tasks = tasks.map(task => 
-        task.id === taskId ? {...task, completed: !task.completed} : task
-      );
+    function toggleComplete(id) {
+      tasks = tasks.map(task => task.id === id ? { ...task, completed: !task.completed } : task);
       deleteAllConfirm = false;
       renderTasks();
     }
 
-    function editTask(taskId) {
-      const newTaskText = prompt("Edit your task:");
-      if (newTaskText !== null) {
-        tasks = tasks.map(task =>
-          task.id === taskId ? {...task, text: newTaskText.trim()} : task
-        );
+    function editTask(id) {
+      const task = tasks.find(t => t.id === id);
+      const newText = prompt('Edit task description:', task.text);
+      const newDeadline = prompt('Edit deadline (YYYY-MM-DD):', task.deadline);
+      if (newText !== null && newText.trim() !== '') {
+        task.text = newText.trim();
+        task.deadline = newDeadline.trim();
         deleteAllConfirm = false;
         renderTasks();
       }
     }
 
-    function deleteTask(taskId) {
-      if (confirm("Are you sure you want to delete this task?")) {
-        tasks = tasks.filter(task => task.id !== taskId);
+    function deleteTask(id) {
+      if (confirm('Are you sure you want to delete this task?')) {
+        tasks = tasks.filter(task => task.id !== id);
         deleteAllConfirm = false;
         renderTasks();
       }
@@ -112,17 +167,14 @@
 
     function deleteAllTasks() {
       if (!deleteAllConfirm) {
-        alert("Click again to confirm deleting ALL tasks!");
+        alert('Click again to confirm deleting ALL tasks!');
         deleteAllConfirm = true;
-
-        setTimeout(() => {
-          deleteAllConfirm = false;
-        }, 3000);
+        setTimeout(() => deleteAllConfirm = false, 3000);
       } else {
         tasks = [];
         deleteAllConfirm = false;
         renderTasks();
-        alert("All tasks deleted!");
+        alert('All tasks deleted!');
       }
     }
 
@@ -130,4 +182,3 @@
   </script>
 </body>
 </html>
-
